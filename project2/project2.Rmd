@@ -4,13 +4,13 @@ output: html_document
 ---
 ***
 
-#### 所选项目：红葡萄酒质量
+# 所选项目：红葡萄酒质量
 ***
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE)
 ```
-#### 1. 初始化数据
+### 1. 初始化数据
 ***
 ```{r init data}
 library(ggplot2)
@@ -25,8 +25,16 @@ table(wine$quality)
 
 ```
 
-##### 密度变化较为分散；大部分酒的质量集中在5,6左右。在fixed.acidity，volatile.acidity, citric.acid, residual.sugar,chlorides, free.sulfur.dioxide, total.sulfur.dioxide中，最大值都远远超过了75%的数据，而在最小值到三分位之间的数据差异较为平均，不知道这些较大数对最终酒的质量有何种影响。
+##### 分析:
 
+* 密度变化较为分散；
+* 大部分酒的质量集中在5,6左右;
+* 在fixed.acidity，volatile.acidity, citric.acid, residual.sugar,chlorides, free.sulfur.dioxide, total.sulfur.dioxide中，最大值都远远超过了75%的数据，而在最小值到三分位之间的数据差异较为平均，不知道这些较大数对最终酒的质量有何种影响。
+
+***
+
+### 2.单变量分析
+***
 #### quality
 
 ```{r quality, echo=FALSE}
@@ -38,219 +46,258 @@ ggplot(aes(quality), data = wine, binwidth = 1) + geom_histogram(breaks=seq(3,8,
 ggplot(aes(fixed.acidity),data = wine,binwidth = 0.05) +
   geom_histogram(aes(fill = '#ff9932'),
                  breaks = seq(4,16,0.05)) 
-ggplot(aes(volatile.acidity),data = wine, binwidth = 0.001 ) +
-  geom_histogram(aes(fill = '#ff9932'), breaks = seq(0,1.6,0.05))
 
+# sum(subset(wine,quality==5)$quality) / sum(wine$quality)
+
+```
+
+
+```{r }
+
+ggplot(aes(volatile.acidity),data = wine) +
+  geom_histogram(aes(fill = '#ff9932'), binwidth = 0.01)
+```
+
+
+```{r}
 ggplot(aes(citric.acid),data = wine, binwidth = 0.001 ) +
   geom_histogram(aes(fill = '#ff9932'), breaks = seq(0,1,0.005))
 
+# sum(subset(wine,citric.acid==1.00))
+
 ```
 
-```{r }
-```
-
-### 双变量分析
 
 ```{r}
+ggplot(aes(x=fixed.acidity),data = wine, binwidth=0.001) +
+    geom_histogram(binwidth = 0.05, aes(fill='#ff6690')) +
+    scale_x_continuous(breaks = seq(4,16,1))
+```
+
+
+```{r}
+ggplot(aes(x = residual.sugar),data = wine) +
+  geom_histogram(
+    binwidth = 0.05
+  )
+
+ggplot(aes(x = residual.sugar), data = wine) +
+  geom_histogram(
+    binwidth = 0.05
+  ) +
+  scale_y_log10() +
+  scale_x_continuous(
+    breaks = seq(0,16,2)
+  )
+```
+
+```{r}
+ggplot(aes(x=chlorides),data = wine) +
+  geom_histogram(binwidth = 0.001) 
+
+```
+
+```{r}
+
+ggplot(aes(x=alcohol),data = wine) +
+  geom_histogram(binwidth = 0.05) +
+  scale_x_continuous(breaks = seq(6,14,1))
+```
+
+```{r}
+
+ggplot(aes(x=sulphates),data = wine) +
+  geom_histogram(binwidth = 0.005)
+```
+
+```{r}
+ggplot(aes(x=pH),data = wine) +
+  geom_histogram(binwidth = 0.005)
+```
+
+```{r}
+ggplot(aes(x = density), data = wine) +
+  geom_histogram(binwidth = 0.0001)
+```
+
+##### 分析:
+* quality为5,6,7的酒占比近似值分别为37.8%,42.5%,15.5%;
+* volatile.acidity的数量分布图形近似为钟型曲线,在1.0-1.6之间数量很少;
+* citric.acid分布相对均匀，集中分布在0-0.75之间，1.00处有少量数据，0.75-1.00之间没有数据,在0.00处的数量与其他值的酒的数量相差较大。
+* fixed.acidity的分布图形近似钟型曲线,少量数据分布在14-16之间;
+* residual.sugar在7-16之间分布比较稀疏;
+* chlorides集中在0.0-0.2之间，整体近似正态分布，大于0.2的分布稀疏;
+* alcohol在<9的部分数量极少,9-9.5之间呈递增趋势,9.5-14整体呈递减趋势,大致趋势是数量随alcohol递减;
+* sulphates集中分布在0-1.0之间，大于1.0的部分极少;
+* pH和density比较符合正态分，pH大部分集中在3.0到3.7之间,density主要分布在0.993-1.000之间;
+
+***
+
+### 3.双变量分析
+***
+```{r fig.width=12, fig.height=12, fig.align='center'}
 library(GGally)
 
-ggpairs(wine[,2:13])
+ggpairs(wine[1:13],
+        upper = list(continuous = wrap('cor', size=3)))
+
+?ggpairs
 
 ```
 
-#### 分析散点矩阵的相关性系数：从散点矩阵观察，与quality相关系数比较大的数据有：quality与volatile.acidity的相关系数是-0.391, 与alcohol的相关系数是0.476,另外与sulphates相关系数是0.25。在双变量分析时，重点分析这些变量之间的关系。
+##### 分析:
+* 从散点矩阵观察，与quality相关系数比较大的数据有：quality与volatile.acidity的相关系数是-0.391, 与alcohol的相关系数是0.476,另外与sulphates相关系数是0.25。在双变量分析时，将重点分析这些变量之间的关系。
 
 ```{r fixed.acidity vs. quality}
-ggplot(aes(x= quality,y = fixed.acidity), data = wine) +
-  geom_jitter(alpha = 1/10) +
-  ggtitle('quality vs. fixed.acidity')
+# ggplot(aes(x= quality,y = fixed.acidity), data = wine) +
+#   geom_jitter(alpha = 1/10) +
+#   ggtitle('quality vs. fixed.acidity')
+# 使用箱线图+抖动散点分析连续变量和定序变量
+ggplot(aes(x = factor(quality), y=fixed.acidity),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian(ylim = c(3,16))
 
+range(wine$fixed.acidity)
 ```
 
-##### 从上图大致可看出，约有50%的酒质量集中在5，6之间，另外fixed.acidity近似于最大值16时质量是5，质量为7、8是，fiexed.acidity通常并不太高，大部分在13以下。
+##### 分析:
+* 约有50%的酒质量集中在5，6之间，另外fixed.acidity近似于最大值16时质量是5，质量为7、8是，fiexed.acidity通常并不太高，大部分在13以下;
+* quality=3和8对应的fixed.acidity分布非常不均衡，4-7之间的则比较集中。
+* 大部分酒的fixed.acidity含量在8左右.
 
 ```{r volatile.acidity}
 
-ggplot(aes(x = quality, y = volatile.acidity), data = wine) +
-  geom_jitter(alpha = 1/10) +
-  ggtitle("volatile.acidity vs. Quality")
+# ggplot(aes(x = quality, y = volatile.acidity), data = wine) +
+#   geom_jitter(alpha = 1/10) +
+#   ggtitle("volatile.acidity vs. Quality")
+
+ggplot(aes(x = factor(quality), y=volatile.acidity),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
 
 ```
 
-### quality5-7之间的酒分布比较集中，也可以大致观察到，在quality<4的酒中，有一些volatile.acidity含量较高，而在>7的酒中，volatile.acidity的含量普遍较低一些.
-```{r}
-ggplot(aes(x = quality, y = volatile.acidity), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = mean
-  ) +
-  ggtitle('Mean of volatile.acidity vs.Quality')
-```
+##### 分析:
+* 每个阶段的酒中，volatile.acidity的含量分布都比较均匀；
+* volatile.acidity的平均值大致与quality呈递减关系;
+* 大部分酒的volatile.acidity含量介于0.4-0.8之间.高于1.2的异常值对应酒质量<5.
 
-### 上图大致趋势是，quality和volatile.acidity之间有一个递减关系。
 
 ```{r citric.acid vs.quality}
-ggplot(aes(x = quality, y = citric.acid),data = wine) +
-  geom_jitter(alpha = 1/5)  +
-  ggtitle('Citric.acid vs. Quality')
+ggplot(aes(x = factor(quality), y=citric.acid),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
+
+
 ```
 
-```{r}
-ggplot(aes(x = quality, y = citric.acid), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = median
-  ) +
-  ggtitle('Mean of Citric.acid vs. Quality')
-```
-### 在几个等级的酒的分布中，citric.acid分布都比较均匀。从中位数的折线图来看，有一定的递增关系。
+##### 分析：
+* 整体citric.acid含量在0.75一下，集中在[0,0.5];
+* 观察平均数citric.acid与quality大致呈递增关系.
 
 ```{r }
-ggplot(aes(x = quality, y = residual.sugar) ,data = wine) +
-  geom_jitter(alpha = 1/5)
-
-ggplot(aes(x = quality, y = residual.sugar), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = median
-  ) +
-  ggtitle('Mean of Residual.sugar vs.Quality')
+ggplot(aes(x = factor(quality), y=residual.sugar),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
 ```
 
-```{r }
-#  [1] "X"                    "fixed.acidity"        "volatile.acidity"     "citric.acid"          "residual.sugar"      
-#  [6] "chlorides"            "free.sulfur.dioxide"  "total.sulfur.dioxide" "density"              "pH"                  
-# [11] "sulphates"            "alcohol"              "quality"  
-ggplot(aes(x = quality, y = chlorides), data = wine) +
-  geom_jitter(alpha = 1/5)
-```
+##### 分析:
+* 每个等级的酒中residual.sugar分布范围都很窄，比较集中,普遍分布在2左右，平均数整体呈水平趋势，且异常值也在每个等级中均匀分布，暂且看不到和quality之间的关系.
 
 
 ```{r }
-ggplot(aes(x = quality, y = alcohol), data = wine) +
-  geom_jitter(alpha = 1/5)
+ggplot(aes(x = factor(quality), y=alcohol),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
+```
 
-ggplot(aes(x = quality ,y = alcohol), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = median
-  ) +
-  ggtitle('Median of Alcohol vs.Quality')
+##### 分析:
+* quality大于5的酒alcohol分布较均匀，并且在此范围内，alcohol平均值大致与quality呈递增关系，而<5的酒alcohol平均值大致水平.
+
+```{r}
+ggplot(aes(x = factor(quality), y=sulphates),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
+```
+
+***
+### 4.多个变量分析
+***
+
+```{r 定义多变量绘制函数}
+
+#定义绘制多变量关系的函数。图形是散点图+平滑线
+myfunc.multi.vars <- function(xdata,ydata,labx,laby, title) {
+  ggplot(aes(x = xdata, y = ydata, color = factor(quality)),
+         data = wine) +
+    geom_jitter(alpha = 0.2) +
+    scale_color_brewer('blues') +
+    geom_smooth(method = 'lm',se = FALSE, size = 1) +
+    labs(x = labx, y = laby)+
+    ggtitle(title)
+}
 ```
 
 ```{r}
-ggplot(aes(x = quality, y = sulphates), data = wine) +
-  geom_jitter(alpha = 1/5)
 
-ggplot(aes(x = quality, y = sulphates), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = median
-  ) +
-  ggtitle('Median of Sulphates vs.Quality')
-```
-
-```{r fixed.acidity vs. density}
-ggplot(aes(x = fixed.acidity,y = density), data = wine) + 
-  geom_point()+
-  geom_smooth(method = 'auto')
+myfunc.multi.vars(wine$free.sulfur.dioxide,wine$total.sulfur.dioxide,
+                  'free.sulfur.dioxide','total.sulfur.dioxide',
+                  'free.sulfur vs total.sulfur vs quality')
 
 ```
 
-#### 从上图大致分析，fixed.acidity 和density约为线性关系，density随fixed.acidity的增大而减小
-
-```{r fixed.acidity vs. PH}
-ggplot(aes(x = fixed.acidity, y = pH), data = wine) +
-  geom_line(stat = 'summary', fun.y = mean) +
-  # geom_smooth(method = 'auto') + 
-  facet_wrap(~quality)+
-  ggtitle('Fixed.Acidity vs. PH')
-```
-
-#### 从上图分析，fixed.acidity和pH值大约为线性关系，fixed.acidity越大，pH值越小。(这也符合逻辑，pH值就是用来衡量酸碱度的)
-
-```{r density vs. alcohol}
-ggplot(aes(x = density, y = alcohol), data = wine) +
-  geom_line() +
-  geom_smooth(method = 'auto') +
-  ggtitle('Density vs. Alcohol') 
-```
-
-#### density和alcohol大致为指数递减关系，二者相关系数是0.496
-
-```{r}
-ggplot(aes(x = free.sulfur.dioxide,y = total.sulfur.dioxide), data = wine) +
-  geom_line() +
-  geom_smooth(method = 'auto')
-```
-
-#### total.sulfur.dioxide随free.sulfur.dioxide增大而增大，这也是符合逻辑的。总二氧化硫含量和剩余二氧化硫含量之间相关性很大，其他条件不变的情况下，剩余二氧化硫越多，总二氧化硫越多。
+##### 分析:
+* total.sulfur.dioxide随free.sulfur.dioxide增大而增大，这也是符合逻辑的。总二氧化硫含量和剩余二氧化硫含量之间相关性很大，其他条件不变的情况下，剩余二氧化硫越多，总二氧化硫越多。
 * 二氧化硫在酒中以气体形式存在，它的浓度影响酒的风味。
 
-```{r Sulfur.Dioxide vs. Quality}
-ggplot(aes(x = quality, y = total.sulfur.dioxide), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = mean
-  ) +
-  scale_y_continuous(limits = c(0,quantile(wine$total.sulfur.dioxide,0.99)),
-                     breaks = seq(25,100,5))
-
-ggplot(aes(x = quality ,y=total.sulfur.dioxide), data = wine) +
-  geom_jitter(alpha = 1/5)
-  
-```
-
 ```{r}
-ggplot(aes(x = fixed.acidity,y = citric.acid), data = wine) +
-  geom_line() +
-  geom_smooth()
-table(wine$fixed.acidity)
-table(wine$citric.acid)
-```
-
-### 多个变量分析
-```{r }
-ggplot(aes(x = free.sulfur.dioxide,y = total.sulfur.dioxide),data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = mean,
-  ) +
-  scale_x_continuous(
-    limits = c(0,quantile(wine$free.sulfur.dioxide,0.99))
-  ) +
-  scale_y_continuous(
-    limits = c(0, quantile(wine$total.sulfur.dioxide,0.99))
-  )+ 
-  facet_wrap(~quality)
-```
-
-```{r 酸性物质对质量的影响}
 wine$acid <- wine$fixed.acidity + wine$volatile.acidity + wine$citric.acid
 
-ggplot(aes(x=quality, y=acid), data = wine) +
-  geom_jitter(
-    alpha = 1/3,
-    color = '#ff9099'
-  )
-ggplot(aes(x = quality, y = acid), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = mean,
-    aes(color = quality)
-  )
+myfunc.multi.vars(wine$acid,wine$pH,
+                  'total.acidity','pH',
+                  'acidity vs ph vs quality')
 
-# 总酸度与pH的关系
-ggplot(aes(x = acid, y = pH), data = wine) +
-  geom_line(
-    aes(color = quality),
-    stat = 'summary',
-    fun.y = mean
-  ) +
-  facet_wrap(~quality)
+
 ```
 
-#### 酸性物质总量与pH值关系很大，但是没有直接显示出对红酒质量的影响。在红酒的几个质量等级中，酸性物质的含量大多在(5,15之间)，总pH值都在(3,4)之间.
+##### 分析:
+* 酸性物质总量与pH值呈递减关系；
+* 在红酒的几个质量等级中，酸性物质的含量大多在(5,15之间)，总pH值都在(3,4)之间；
+* 等级3的酒pH通常高于其他酒,而等级8的pH低于其他酒.
+
+```{r}
+myfunc.multi.vars(wine$acid,wine$density,
+                  'total.acidity','density',
+                  'acidity vs density vs quality')
+
+
+```
+
+##### 分析:
+* 总酸含量和密度大致呈递增趋势.
+* 在总酸量相同的情况下，几乎总有density越高等级越低.
+
+```{r}
+myfunc.multi.vars(wine$density,wine$alcohol,
+                  'density','alcohol',
+                  'density vs alcohol vs quality')
+```
+
+##### 分析:
+* alcohol和density之间不同等级下的近似曲线呈下降趋势;
+* 在density相同的情况下，等级大于5的酒随alcohol越高等级越高.
 
 ### 线性预测模型
 ```{r}
@@ -266,38 +313,52 @@ mtable(model,model2,model3,model4,model5,model6)
 
 ```
 
-### 最终图像
-#### 1
+### 5.最终图像
+***
+
+##### 1.图像1
 ```{r}
-ggplot(aes(quality), data = wine, binwidth = 1) + geom_histogram(breaks=seq(3,8,0.5))+
-  ggtitle('Count of Quality')
+ggplot(aes(x = factor(quality), y=sulphates),
+       data = wine) +
+  geom_jitter(alpha = 0.3) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
 ```
 
-#### 2.
+##### 分析：
+* sulphates与quality大致呈递增关系，但变化率比较小，与散点矩阵中sulphates和quality相关系数近似0.3相吻合.
+
+#### 2.图像2
 ```{r}
-ggplot(aes(x = quality, y = citric.acid), data = wine) +
-  geom_line(
-    stat = 'summary',
-    fun.y = median,
-    aes(color = '#ff9099')
-  ) +
-  ggtitle('Mean of Citric.acid vs. Quality')
+ggplot(aes(x = factor(quality), y = acid), data = wine) +
+  geom_jitter(alpha = 0.2) +
+  geom_boxplot(alpha = 0.5) +
+  coord_cartesian()
 ```
 
-#### 3.
+##### 分析：
+* 总酸量集中分布在7.5到10之间；
+* 在数量分布最多的5,6,7三个等级的酒中，总酸量与quality大致呈递增关系;
+
+#### 3.图像3
 ```{r}
-# 总酸度与pH的关系
-ggplot(aes(x = acid, y = pH), data = wine) +
-  geom_line(
-    aes(color = quality),
-    stat = 'summary',
-    fun.y = mean
-  ) +
-  facet_wrap(~quality)
+myfunc.multi.vars(wine$density,wine$alcohol,
+                  'density','alcohol',
+                  'density vs alcohol vs quality')
 ```
 
-## 反思：
+##### 分析:
+* 相同density下，大部分酒符合alcohol越大等级越高的趋势，与散点矩阵中quality和alcohol相关系数较高想符合.
+
+### 6.反思：
+***
 * 1. 这个数据集包含1599条红酒数据，质量变量是一个离散型变量，在研究其他变量对质量的影响时，散点图用的比较多。
 * 2. 分析变量之间的关系时用到的思路比较少，有时会不知道从哪里入手。
-* 3. 完成此项目时从google,wiki等网站查阅了关于红酒化学成分的一些资料。
-* 4. 从分析到建立模型到预测的过程有些不太清楚。
+
+* 3. 在选取统计图形时没有思路，尤其对于此案例中出现的连续变量和定序变量之间的图形分析方法没有明确的思路。
+
+#### 反思分析：
+* 1. 通过第一次提交审阅，明确了，连续变量和定序变量，使用箱型图分析比较合适，同时经过实践，对于箱型图的绘制和分析方法有了更深的理解。
+* 2. 对于两个不确定线性关系的变量，使用散点图+曲线能更直观的发现变量之间的关系。
+* 3. 通过第一次提交后的修改，对于分析数据，变量关系有了比较明确的思路和方法。
+* 4. 思考：此数据目前分析了相关性较大的成分对质量的影响。能否通过分析除quality之外的其他变量间关系，间接分析出其他成分(与质量相关性系数较小的)最终如何影响红酒质量?
