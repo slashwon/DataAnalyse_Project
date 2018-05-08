@@ -1,6 +1,21 @@
 # coding: utf-8
 
 import pickle
+import matplotlib.pyplot as plot
+from tools.feature_format import featureFormat
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score as accuracy
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+import numpy
+from sklearn.feature_selection import SelectKBest
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import GridSearchCV
+from tools.feature_format import targetFeatureSplit
+from sklearn.cross_validation import train_test_split 
+
 enron_data = pickle.load(open('./final_project/final_project_dataset.pkl','rb'))
 
 # ======== 工具方法 ===========
@@ -8,7 +23,6 @@ def get_features_data(input_data, features_list):
     """
     调用featureFormat获取数据
     """
-    from tools.feature_format import featureFormat
     features_data = featureFormat(input_data, features_list)
     return features_data
 
@@ -56,6 +70,12 @@ def deep_copy(src_list):
     return_list = [src_list[index] for index in range(len(src_list))]
     return return_list
 
+def get_min_max(data_list):
+    """
+    获取数据列表中的最大值最小值
+    """
+    return min(data_list), max(data_list)
+
 # ========= 探索数据 ===========
 enron_keys = list(enron_data.keys())
 keys_as_set = set(enron_keys)
@@ -74,11 +94,17 @@ print("所有的feature个数:",len(all_features))
 
 # POI name:
 poi_names = []
+non_poi_names = []
+nan_poi_names = []
 for name, feature in enron_data.items():
     if feature['poi'] == 1:
         poi_names.append(name)
+    elif feature['poi']==0:
+        non_poi_names.append(name)
+    else :
+        nan_poi_names.append(name)
         
-print("所有的poi姓名, 共有%d个" % len(poi_names))
+print("所有的poi共有%d个;非poi个数%d;poi值是nan的%d" % (len(poi_names),len(non_poi_names),len(nan_poi_names)))
 
 # 主要特征中包含NAN数据的
 # Salary
@@ -114,9 +140,6 @@ original_data_path = 'final_project/my_dataset.pkl'
 pickle.dump(enron_data,open(original_data_path,'wb'))
 
 # ======== 探究变量之间的关系 ========
-import matplotlib.pyplot as plot
-from tools.feature_format import featureFormat
-
 def plot_variance(features_name_list):
     """
     绘制两个变量的散点图
@@ -133,7 +156,7 @@ def plot_variance(features_name_list):
 
 # salary, bonus
 features_name_list = ['salary', 'bonus']
-return_data = plot_variance(features_name_list)
+#return_data = plot_variance(features_name_list)
 
 # #### 从散点图可以看到有2个明显的异常点，bonus和salary都远高于其他人，是否是poi？
 
@@ -190,10 +213,12 @@ for name, feature in enron_data.items():
     ratio_map_poi[feature['ratio_email_with_poi']] = is_poi
     
 # 绘制两种分类的箱线图
+"""
 non_pois = [ratio for ratio in ratio_map_poi if ratio_map_poi[ratio]<=0]
 pois = [ratio for ratio in ratio_map_poi if ratio_map_poi[ratio]>=1]
 plot.boxplot(x=[non_pois,pois], labels=['non_poi', 'poi'])
 plot.show()
+"""
 
 # #### 从箱线图的分位数上可以看出，poi的人的邮件比重明显高于非poi的。因此可以将邮件比重作为新的属性来分析是不是poi。
 
@@ -213,9 +238,7 @@ def prepare_data(input_data, features_list):
     """
     准备分类器需要的features,target数据
     """
-    from tools.feature_format import featureFormat
-    from tools.feature_format import targetFeatureSplit
-    from sklearn.cross_validation import train_test_split 
+  
     
     data_format = featureFormat(input_data, features_list)
     targets, features = targetFeatureSplit(data_format)
@@ -223,17 +246,15 @@ def prepare_data(input_data, features_list):
     return features_train, features_test, target_train, target_test
 
 
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score as accuracy
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
-from sklearn.metrics import f1_score
-import numpy
+count =0 
 
 def tree_classifier(input_data, features_list) :
     """
     使用决策树
     """
+    global count
+    count+=1
+    print("=============%d============" % count)
     features_train, features_test, target_train, target_test = prepare_data(input_data, features_list)
     
     clf = DecisionTreeClassifier()
@@ -251,11 +272,13 @@ def tree_classifier(input_data, features_list) :
     importance = clf.feature_importances_
     indices = list(numpy.argsort(importance))
     indices = reversed(indices)
+    important_features = []
     for no, index in enumerate(indices):
         if importance[index]>0:
             print("No.%d--属性%s的权重%f" % (no, features_list[index+1], importance[index]))
+            important_features.append(features_list[index+1])
 
-     
+    return important_features
     
     
 #  使用原始数据
@@ -263,14 +286,18 @@ data_original = pickle.load(open(original_data_path, 'rb'))
 
 features_no_address.remove('poi')
 features_no_address.insert(0, 'poi')
-tree_classifier(data_original, features_no_address)
+important_features = tree_classifier(data_original, features_no_address)
+print("重要变量",important_features)
+important_features.insert(0, 'poi')
+tree_classifier(data_original, important_features)
 
 # 新数据：
 data_new = pickle.load(open(enron_data_new_path, 'rb'))
 
 features_no_address_new.remove('poi')
 features_no_address_new.insert(0, 'poi')
-tree_classifier(data_new, features_no_address_new)
+important_features = tree_classifier(data_new, features_no_address_new)
+print("重要变量",important_features)
 
 #  增加新的变量后，准确率没有上升。所以还是采用原来的features
 # ======== 选择参数 ===================
@@ -283,7 +310,7 @@ features_no_address.remove('poi')
 features_no_address.insert(0, 'poi')
 features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_no_address)
 
-from sklearn.feature_selection import SelectKBest
+
 selector = SelectKBest(k=10)
 selector = selector.fit(features_train, targets_train)
 features_selection = selector.get_support(indices=True)
@@ -298,44 +325,67 @@ tree_classifier(data_original, features_selected)
 # ============== 选择其他算法： ==============
 
 # Naive_bayes
-from sklearn.naive_bayes import GaussianNB
+"""
 data_original = pickle.load(open(original_data_path, 'rb'))
-features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_selected)
+#print(data_original)
+print(important_features)
+features_train, features_test, targets_train, targets_test = prepare_data(data_original, important_features)
 nb = GaussianNB()
 nb = nb.fit(features_train, targets_train)
 pred = nb.predict(features_test)
 accu = accuracy(targets_test, pred)
 pre = precision_score(targets_test, pred)
 recall = recall_score(targets_test, pred)
+
 print("朴素贝叶斯模型准确率: %f" % accu)
 print("精度: %f" % pre)
 print("召回率: %f" % recall)
-
+"""
 
 # SVC
-from sklearn.svm import LinearSVC
+"""
 data_original = pickle.load(open(original_data_path, 'rb'))
-features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_selected)
+# 特征缩放
+scale_features=['deferral_payments', 'total_payments', 'loan_advances', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value']
+for f in scale_features:
+    feature_values=[]
+    for name, features in data_original.items():
+        value = features[f]
+        if value == 'NaN':
+            value = 0.
+        feature_values.append(value)
+    
+    _min = min(feature_values)
+    _max = max(feature_values)
+    if _min == _max:
+        continue
+    for name, features in data_original.items():
+        value = features[f]
+        if value == 'NaN':
+            value = 0.
+        features[f] = (value-_min)/(_max-_min)
+        
+features_train, features_test, targets_train, targets_test = prepare_data(data_original, important_features)
 clf = LinearSVC()
 clf = clf.fit(features_train, targets_train)
 pred = clf.predict(features_test)
 accu = accuracy(targets_test, pred)
 pre = precision_score(targets_test, pred)
 recall = recall_score(targets_test, pred)
-print("朴素贝叶斯模型准确率: %f" % accu)
+print("支持向量机模型准确率: %f" % accu)
 print("精度: %f" % pre)
 print("召回率: %f" % recall)
-
+"""
 
 # #### 由于SVC,朴素贝叶斯模型模型准确率较低,因此采用决策树模型
 
 # #### 参数调整
 
-
+important_features.insert(0, 'poi')
+important_features = tree_classifier(data_original, important_features)
+print("重要参数",important_features)
 # 使用GridSearchCV
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
+
 data_original = pickle.load(open(original_data_path, 'rb'))
 features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_selected)
 params = {
@@ -348,8 +398,6 @@ clf = clf.fit(features_train, targets_train)
 print (clf.best_estimator_)
 
 # 再次对该模型进行计算
-# clf = DecisionTreeClassifier()
-# clf.fit(features_train, targets_train)
 pred = clf.predict(features_test)
 accu = accuracy(targets_test, pred)
 precision = precision_score(targets_test, pred)
@@ -360,7 +408,7 @@ print("召回率%f" % recall)
 
 my_classifier_path = 'final_project/my_classifier.pkl'
 my_features_path = 'final_project/my_feature_list.pkl'
-pickle.dump(clf,open(my_classifier_path, 'wb'))
+pickle.dump(clf.best_estimator_,open(my_classifier_path, 'wb'))
 pickle.dump(features_selected, open(my_features_path, 'wb'))
 
 print("程序结束")
