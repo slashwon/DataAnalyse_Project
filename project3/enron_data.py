@@ -79,7 +79,6 @@ def get_min_max(data_list):
 # ========= 探索数据 ===========
 enron_keys = list(enron_data.keys())
 keys_as_set = set(enron_keys)
-print(keys_as_set)
 
 # 两个不是姓名 THE TRAVEL AGENCY IN THE PARK, TOTAL，从数据集中删除
 if 'THE TRAVEL AGENCY IN THE PARK' in enron_data.keys():
@@ -91,6 +90,7 @@ print("数据个数 %s " %(str(len(enron_data))))
 # feature列表
 all_features = get_all_features(enron_data)
 print("所有的feature个数:",len(all_features))
+print(all_features)
 
 # POI name:
 poi_names = []
@@ -192,8 +192,15 @@ for name, email_count in email_with_poi.items():
         ratio_email_with_poi[name] = 0.
     else:
         ratio_email_with_poi[name] = email_count/total_email[name]
-ratio_email_with_poi
 
+for name, features in enron_data.items():
+    total = total_email[name]
+    if total==0:
+        features['ratio_to_poi']=0.
+        features['ratio_from_poi']=0.
+    else:
+        features['ratio_to_poi']=features['from_this_person_to_poi']/total
+        features['ratio_from_poi']=features['from_poi_to_this_person']/total
 
 # 在enron_data中增加新的属性
 for name, feature in enron_data.items():
@@ -233,18 +240,23 @@ features_no_address_new.remove('email_address')
 features_no_address_new.append('ratio_email_with_poi')
 
 # 决策树分类
-
 def prepare_data(input_data, features_list):
     """
     准备分类器需要的features,target数据
     """
-  
-    
     data_format = featureFormat(input_data, features_list)
     targets, features = targetFeatureSplit(data_format)
-    features_train, features_test, target_train, target_test = train_test_split(features, targets, test_size = 0.4, random_state=43)
+    features_train, features_test, target_train, target_test = train_test_split(features, targets, test_size = 0.3, random_state=42)
+    
+    from sklearn.cross_validation import KFold
+    kf=KFold(len(targets),3)
+    for train_indices, test_indices in kf:
+        #make training and testing sets
+        features_train= [features[ii] for ii in train_indices]
+        features_test= [features[ii] for ii in test_indices]
+        target_train=[targets[ii] for ii in train_indices]
+        target_test=[targets[ii] for ii in test_indices]
     return features_train, features_test, target_train, target_test
-
 
 count =0 
 
@@ -278,10 +290,11 @@ def tree_classifier(input_data, features_list) :
             print("No.%d--属性%s的权重%f" % (no, features_list[index+1], importance[index]))
             important_features.append(features_list[index+1])
 
-    return important_features
+    return important_features, clf
     
     
 #  使用原始数据
+"""
 data_original = pickle.load(open(original_data_path, 'rb'))
 
 features_no_address.remove('poi')
@@ -301,13 +314,14 @@ print("重要变量",important_features)
 
 #  增加新的变量后，准确率没有上升。所以还是采用原来的features
 # ======== 选择参数 ===================
-
+"""
 # SelectKBest
 data_original = pickle.load(open(original_data_path, 'rb'))
 features_no_address = get_all_features(data_original)
 features_no_address.remove('email_address')
 features_no_address.remove('poi')
 features_no_address.insert(0, 'poi')
+features_no_address.remove('shared_receipt_with_poi')
 features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_no_address)
 
 
@@ -316,7 +330,7 @@ selector = selector.fit(features_train, targets_train)
 features_selection = selector.get_support(indices=True)
 features_names_selected = [features_no_address[index] for index in features_selection]
 print("被选择的feature: ", features_names_selected)
-
+""""
 # 使用上面选择的feature再次进行决策树分类
 data_original = pickle.load(open(original_data_path, 'rb'))
 features_selected = ['poi','deferral_payments', 'total_payments', 'loan_advances', 'restricted_stock_deferred', 'expenses', 'exercised_stock_options', 'from_messages', 'other', 'from_this_person_to_poi', 'shared_receipt_with_poi']
@@ -325,7 +339,6 @@ tree_classifier(data_original, features_selected)
 # ============== 选择其他算法： ==============
 
 # Naive_bayes
-"""
 data_original = pickle.load(open(original_data_path, 'rb'))
 #print(data_original)
 print(important_features)
@@ -340,10 +353,8 @@ recall = recall_score(targets_test, pred)
 print("朴素贝叶斯模型准确率: %f" % accu)
 print("精度: %f" % pre)
 print("召回率: %f" % recall)
-"""
 
 # SVC
-"""
 data_original = pickle.load(open(original_data_path, 'rb'))
 # 特征缩放
 scale_features=['deferral_payments', 'total_payments', 'loan_advances', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value']
@@ -375,27 +386,26 @@ recall = recall_score(targets_test, pred)
 print("支持向量机模型准确率: %f" % accu)
 print("精度: %f" % pre)
 print("召回率: %f" % recall)
-"""
-
-# #### 由于SVC,朴素贝叶斯模型模型准确率较低,因此采用决策树模型
 
 # #### 参数调整
 
 important_features.insert(0, 'poi')
 important_features = tree_classifier(data_original, important_features)
 print("重要参数",important_features)
+"""
 # 使用GridSearchCV
+features_selected = ['poi','ratio_to_poi','ratio_from_poi','total_payments','total_stock_value','long_term_incentive']
+data_original = pickle.load(open(enron_data_new_path, 'rb'))
+pickle.dump(data_original,open(original_data_path,'wb'))
+feature_important, clf = tree_classifier(data_original , features_selected)
 
-data_original = pickle.load(open(original_data_path, 'rb'))
+"""
 features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_selected)
 params = {
-         'min_samples_split': [2, 3, 4, 5, 6, 7, 8],
-          'max_depth': [1, 2, 3, 4, 5, 6, 7, 8],
-            'max_features': range(3,10)
+         'min_samples_split' : range(5,80,5), 'splitter' : ('best', 'random')
           }
 clf = GridSearchCV(DecisionTreeClassifier(), params)
 clf = clf.fit(features_train, targets_train)
-print (clf.best_estimator_)
 
 # 再次对该模型进行计算
 pred = clf.predict(features_test)
@@ -405,10 +415,10 @@ recall = recall_score(targets_test, pred)
 print("准确率%f" % accu)
 print("精度%f" % precision)
 print("召回率%f" % recall)
-
+"""
 my_classifier_path = 'final_project/my_classifier.pkl'
 my_features_path = 'final_project/my_feature_list.pkl'
-pickle.dump(clf.best_estimator_,open(my_classifier_path, 'wb'))
+pickle.dump(clf,open(my_classifier_path, 'wb'))
 pickle.dump(features_selected, open(my_features_path, 'wb'))
 
 print("程序结束")
