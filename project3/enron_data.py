@@ -393,16 +393,14 @@ important_features.insert(0, 'poi')
 important_features = tree_classifier(data_original, important_features)
 print("重要参数",important_features)
 """
+
 # 使用GridSearchCV
 features_selected = ['poi','ratio_to_poi','ratio_from_poi','total_payments','total_stock_value','long_term_incentive']
 data_original = pickle.load(open(enron_data_new_path, 'rb'))
 pickle.dump(data_original,open(original_data_path,'wb'))
-feature_important, clf = tree_classifier(data_original , features_selected)
-
-"""
 features_train, features_test, targets_train, targets_test = prepare_data(data_original, features_selected)
 params = {
-         'min_samples_split' : range(5,80,5), 'splitter' : ('best', 'random')
+    'random_state': range(40,45)
           }
 clf = GridSearchCV(DecisionTreeClassifier(), params)
 clf = clf.fit(features_train, targets_train)
@@ -415,10 +413,13 @@ recall = recall_score(targets_test, pred)
 print("准确率%f" % accu)
 print("精度%f" % precision)
 print("召回率%f" % recall)
-"""
+
+# 最终选择参数
+print("最终的features", features_selected)
+
 my_classifier_path = 'final_project/my_classifier.pkl'
 my_features_path = 'final_project/my_feature_list.pkl'
-pickle.dump(clf,open(my_classifier_path, 'wb'))
+pickle.dump(clf.best_estimator_,open(my_classifier_path, 'wb'))
 pickle.dump(features_selected, open(my_features_path, 'wb'))
 
 print("程序结束")
