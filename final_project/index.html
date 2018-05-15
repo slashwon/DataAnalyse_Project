@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://dimplejs.org/dist/dimple.v2.0.0.min.js"></script>
+    <style>
+        button {
+            font-size: medium;
+            color: dimgrey;
+            width: 150px;
+        }
+
+        h3 {
+            color: dimgrey;
+        }
+
+        td {
+            width: 150px;
+        }
+
+        .observation {
+            width: 300px;
+            fill: black;
+        }
+    </style>
+
+    <!--导入外部的.js文件-->
+    <script type="text/javascript" src="titanic.js"></script>
+
+</head>
+<body>
+
+<h3 align="center">Perishers and Survivers on Titanic . </h3>
+<table align="center">
+
+    <!--添加分类按钮-->
+    <tr>
+        <td>
+            <button onclick="draw_chart(0)">All</button>
+        </td>
+        <td>
+            <button onclick="draw_chart(1)">Men</button>
+        </td>
+        <td>
+            <button onclick="draw_chart(2)">Women</button>
+        </td>
+        <td>
+            <button onclick="draw_chart(3)">Children</button>
+        </td>
+    </tr>
+
+    <!--观察视角的按钮-->
+    <tr>
+        <td colspan="2">
+            <button class="observation" onclick="set_observation(10)">Percentage</button>
+        </td>
+        <td colspan="2">
+            <button class="observation" onclick="set_observation(11)">AbsoluteCount</button>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
